@@ -1,0 +1,369 @@
+{
+  "name": "Topic 15 - Production Business Automation Capstone",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "28ee9c8e-0530-45e3-90ba-de6dd86c59ba",
+      "name": "Manual_Trigger"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const contractPdf =\n`%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n4 0 obj << /Length 260 >> stream\nBT\n/F1 12 Tf\n72 700 Td (EMPLOYMENT CONTRACT & ONBOARDING REQUISITION) Tj\n0 -25 Td (CANDIDATE: Dr. Alexander Vance) Tj\n0 -20 Td (EMAIL: alexander.vance@enterprise-labs.io) Tj\n0 -20 Td (ROLE: Principal AI Systems Architect) Tj\n0 -20 Td (DEPARTMENT: Engineering) Tj\n0 -20 Td (START_DATE: 2026-11-01) Tj\n0 -20 Td (SALARY: 245000 USD) Tj\n0 -20 Td (SECURITY_CLEARANCE: LEVEL_4) Tj\nET\nendstream endobj\n5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\nxref\n0 6\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\n0000000244 00000 n\n0000000555 00000 n\ntrailer << /Size 6 /Root 1 0 R >>\nstartxref\n632\n%%EOF`;\nreturn {\njson: {\ndocumentType: \"SIGNED_EXECUTIVE_CONTRACT\",\nfileName: \"alexander_vance_contract.pdf\"\n},\nbinary: {\ndata: {\ndata: Buffer.from(contractPdf).toString('base64'),\nmimeType: \"application/pdf\",\nfileName: \"alexander_vance_contract.pdf\"\n}\n}\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "3072afbb-cdb6-4527-a5ae-061567d86280",
+      "name": "Code_SimulateSignedContractPDF"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        -16
+      ],
+      "id": "59cb24f3-83c6-4d16-bc3d-c095029aadab",
+      "name": "Extract_PDF_Contract"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const text = $input.item.json.text || \"\";\nconst candidateMatch = text.match(/CANDIDATE:\\s*([^\\r\\n]+)/i);\nconst emailMatch = text.match(/EMAIL:\\s*([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/i);\nconst roleMatch = text.match(/ROLE:\\s*([^\\r\\n]+)/i);\nconst deptMatch = text.match(/DEPARTMENT:\\s*([^\\r\\n]+)/i);\nconst startDateMatch = text.match(/START_DATE:\\s*([0-9-]+)/i);\nconst salaryMatch = text.match(/SALARY:\\s*([0-9]+)/i);\nconst clearanceMatch = text.match(/SECURITY_CLEARANCE:\\s*([^\\r\\n]+)/i);\nconst isValid = candidateMatch && emailMatch && roleMatch;\nreturn {\njson: {\nisValidContract: Boolean(isValid),\nemployee: {\nname: candidateMatch ? candidateMatch[1].trim() : \"Unknown\",\nemail: emailMatch ? emailMatch[1].trim().toLowerCase() : null,\nrole: roleMatch ? roleMatch[1].trim() : \"Specialist\",\ndepartment: deptMatch ? deptMatch[1].trim() : \"Operations\",\nstartDate: startDateMatch ? startDateMatch[1].trim() : new Date().toISOString(),\nsalary: salaryMatch ? parseInt(salaryMatch[1], 10) : 0,\nsecurityClearance: clearanceMatch ? clearanceMatch[1].trim() : \"STANDARD\"\n}\n}\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -16
+      ],
+      "id": "ad604200-698f-4298-bb21-38a62dc87482",
+      "name": "Transform_ParseContractText"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e0c44d82-8a50-4b14-a6b7-495ccdb76729",
+              "leftValue": "={{ $json.isValidContract }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        864,
+        -16
+      ],
+      "id": "a9270b87-f6a1-4f42-b4d3-18312bbc6cca",
+      "name": "IF_IsValidAndUnique"
+    },
+    {
+      "parameters": {
+        "jsCode": "{ json: { status: \"REJECTED_INVALID_DOCUMENT\", reason: \"Missing\nrequired fields\" } }."
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        80
+      ],
+      "id": "cdbff165-918a-46bb-9f8c-14870214eb83",
+      "name": "Log_OnboardingRejected"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.tayanasolutions.com/webhook-test/mock/saas/dispatch",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"system\": \"HRIS\",\n  \"action\": \"CREATE_EMPLOYEE\",\n  \"payload\": {\n    \"employeeName\": \"Dr. Alexander Vance\",\n    \"email\": \"alexander.vance@enterprise-labs.io\",\n    \"jobTitle\": \"Principal AI Systems Architect\",\n    \"department\": \"Engineering\",\n    \"startDate\": \"2026-11-01\",\n    \"salary\": 245000,\n    \"securityClearance\": \"LEVEL_4\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1040,
+        -144
+      ],
+      "id": "ffd86b8d-6182-4c58-81db-7dd8bdc00c7f",
+      "name": "HTTP_CreateHRISRecord",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.tayanasolutions.com/webhook-test/mock/saas/dispatch",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"email\": $node['Transform_ParseContractText'].json.employee.email, \"role\":\n$node['Transform_ParseContractText'].json.employee.role, \"clearance\":\n$node['Transform_ParseContractText'].json.employee.securityClearance } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1248,
+        -112
+      ],
+      "id": "8775d44e-6bd6-4d54-b122-70606317d041",
+      "name": "HTTP_ProvisionIdentityAccount"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const emp = $node['Transform_ParseContractText'].json.employee;\nconst isEngineer = emp.department === 'Engineering';\nconst bundle = isEngineer ? [\n{ assetType: \"MacBook Pro M3 Max 64GB\", category: \"Laptop\", priority: \"URGENT\" },\n{ assetType: \"4K Dual Display Monitors\", category: \"Peripherals\", priority: \"STANDARD\" },\n{ assetType: \"YubiKey 5C FIPS Security Key\", category: \"Security\", priority: \"CRITICAL\" }\n] : [\n{ assetType: \"ThinkPad T14s 32GB\", category: \"Laptop\", priority: \"STANDARD\" }\n];\nreturn {\njson: {\nemployeeName: emp.name,\nemail: emp.email,\ndepartment: emp.department,\nhardwareUnits: bundle\n}\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        -112
+      ],
+      "id": "029fbeda-3944-49c3-95fb-0d57515267ae",
+      "name": "Transform_DetermineHardwareBundle"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1680,
+        -112
+      ],
+      "id": "939e04c6-e44f-4d64-899e-863b98f12f5c",
+      "name": "Item_Lists_BatchHardware."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://n8n.tayanasolutions.com/webhook-test/mock/saas/dispatch",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"asset\": $json.assetType, \"recipient\": $node['Transform_DetermineHardwareBundle'].json.email } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1904,
+        96
+      ],
+      "id": "60ae58aa-df62-4314-8be4-a6cf1acbb1b2",
+      "name": "HTTP_CreateAssetTicket"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.tayanasolutions.com/webhook-test/mock/saas/dispatch",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    channel: \"#announcements\",\n    text:\n      \"Welcome \" +\n      $('Transform_ParseContractText').first().json.employee.name +\n      \" to the \" +\n      $('Transform_ParseContractText').first().json.employee.department +\n      \" team as \" +\n      $('Transform_ParseContractText').first().json.employee.role +\n      \"!\"\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1904,
+        -144
+      ],
+      "id": "44bcd9fc-7dff-43a1-b022-981aef35b335",
+      "name": "HTTP_PostSlackWelcome"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const emp = $node['Transform_ParseContractText'].json.employee;\nreturn {\njson: {\ncapstoneStatus: \"EMPLOYEE_ONBOARDING_COMPLETED_SUCCESSFULLY\",\nemployee: emp.name,\ncorporateEmail: emp.email,\ndepartment: emp.department,\nsystemsProvisioned: [\"HRIS Database\", \"Okta Identity Provider\", \"IT Hardware Jira Assets\", \"Slack Welcome\"],\ncompletedAt: new Date().toISOString()\n}\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2128,
+        -144
+      ],
+      "id": "6477e6ab-be78-4075-9c3c-fee15765e19a",
+      "name": "Code_MasterOnboardingAudit"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual_Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code_SimulateSignedContractPDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_SimulateSignedContractPDF": {
+      "main": [
+        [
+          {
+            "node": "Extract_PDF_Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract_PDF_Contract": {
+      "main": [
+        [
+          {
+            "node": "Transform_ParseContractText",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform_ParseContractText": {
+      "main": [
+        [
+          {
+            "node": "IF_IsValidAndUnique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_IsValidAndUnique": {
+      "main": [
+        [
+          {
+            "node": "HTTP_CreateHRISRecord",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log_OnboardingRejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_CreateHRISRecord": {
+      "main": [
+        [
+          {
+            "node": "HTTP_ProvisionIdentityAccount",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_ProvisionIdentityAccount": {
+      "main": [
+        [
+          {
+            "node": "Transform_DetermineHardwareBundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform_DetermineHardwareBundle": {
+      "main": [
+        [
+          {
+            "node": "Item_Lists_BatchHardware.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Item_Lists_BatchHardware.": {
+      "main": [
+        [
+          {
+            "node": "HTTP_PostSlackWelcome",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP_CreateAssetTicket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_CreateAssetTicket": {
+      "main": [
+        [
+          {
+            "node": "Item_Lists_BatchHardware.",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_PostSlackWelcome": {
+      "main": [
+        [
+          {
+            "node": "Code_MasterOnboardingAudit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "30f2f76c-f841-4bd5-9d23-7a3749fa683c",
+  "meta": {
+    "instanceId": "a03c7678428ef19ededbf912f16f7d5798ec7b9ab4c17f2a2def6a9e791e7215"
+  },
+  "nodeGroups": [],
+  "id": "xudkwzBy5bv0Wud6",
+  "tags": []
+}

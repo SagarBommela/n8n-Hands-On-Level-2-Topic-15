@@ -1,0 +1,90 @@
+{
+  "name": "T15_Enterprise Mock SaaS Receiver",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mock/saas/dispatch",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8e3c7424-68bd-44bb-a288-e69da54c2236",
+      "name": "Webhook",
+      "webhookId": "cc65217e-6ca4-491f-8bbb-9a65885bba73"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Read the incoming webhook request\nconst request = $json.body ?? $json;\n\nconst system = String(request.system ?? \"\").toUpperCase();\nconst action = String(request.action ?? \"\").toUpperCase();\nconst payload = request.payload ?? {};\n\nlet statusCode = 200;\nlet response = {};\n\nswitch (`${system}:${action}`) {\n\n  // 1. HRIS - Create Employee\n  case \"HRIS:CREATE_EMPLOYEE\":\n    response = {\n      hrEmployeeId: \"EMP-88410\",\n      status: \"ACTIVE_ONBOARDING\",\n      system: \"BambooHR Simulated API\",\n      employeeName: payload.employeeName,\n      email: payload.email\n    };\n    break;\n\n  // 2. IDP - Provision User\n  case \"IDP:PROVISION_USER\":\n    response = {\n      idpUserId: \"usr_okta_992144\",\n      corporateEmail: payload.email,\n      status: \"PROVISIONED_MFA_ENROLLED\",\n      system: \"Okta Simulated API\"\n    };\n    break;\n\n  // 3. ASSET - Create Hardware Requisition\n  case \"ASSET:CREATE_REQUISITION\":\n    response = {\n      ticketId: \"JIRA-ASSET-4412\",\n      status: \"DISPATCH_QUEUED\",\n      system: \"Jira Assets Simulated API\",\n      employeeId: payload.employeeId\n    };\n    break;\n\n  // 4. SLACK - Welcome Announcement\n  case \"SLACK:ANNOUNCEMENT\":\n    response = {\n      ok: true,\n      channel: payload.channel ?? \"general-announcements\",\n      ts: \"1728994800.001\",\n      message: \"Welcome announcement posted successfully.\"\n    };\n    break;\n\n  // 5. HRIS - Rollback\n  case \"HRIS:ROLLBACK\":\n    response = {\n      success: true,\n      system: \"HRIS\",\n      employeeId: payload.employeeId,\n      message: \"Employee record deactivated successfully.\"\n    };\n    break;\n\n  // 6. IDP - Rollback\n  case \"IDP:ROLLBACK\":\n    response = {\n      success: true,\n      system: \"IDP\",\n      idpUserId: payload.idpUserId,\n      message: \"Identity account access revoked successfully.\"\n    };\n    break;\n\n  // 7. ASSET - Rollback\n  case \"ASSET:ROLLBACK\":\n    response = {\n      success: true,\n      system: \"ASSET\",\n      ticketId: payload.ticketId,\n      message: \"Asset requisition cancelled successfully.\"\n    };\n    break;\n\n  default:\n    statusCode = 404;\n    response = {\n      success: false,\n      error: \"Unknown system or action\",\n      receivedSystem: system,\n      receivedAction: action\n    };\n}\n\nreturn {\n  json: {\n    statusCode,\n    body: response\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "7bd91f82-c8e5-4fcb-8097-7d132a3d40a4",
+      "name": "Code_MockSaaSRouter"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "ba6fb1d1-30bb-4ca9-83f2-4e6b4d29c42a",
+      "name": "Respond_MockSaaSResponse"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code_MockSaaSRouter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_MockSaaSRouter": {
+      "main": [
+        [
+          {
+            "node": "Respond_MockSaaSResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7147186b-cce2-4e26-b960-4c898110bc74",
+  "meta": {
+    "instanceId": "a03c7678428ef19ededbf912f16f7d5798ec7b9ab4c17f2a2def6a9e791e7215"
+  },
+  "nodeGroups": [],
+  "id": "piZRcLaPkoGVBzPy",
+  "tags": []
+}
